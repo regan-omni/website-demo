@@ -1,9 +1,9 @@
-#Hand Gesture Particle
+# Hand Gesture Particle
 with Three.js
 
 Source: [EHuanglu] (https://x.com/EHuanglu)
 
-##PROMPT ✨ :
+## PROMPT ✨ :
 
 ```
 Create a real-time interactive 3D particle system with Three.js.
