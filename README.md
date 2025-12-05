@@ -1,7 +1,7 @@
 # Hand Gesture Particle
 with Three.js
 
-Source: [EHuanglu] (https://x.com/EHuanglu)
+Source: EHuanglu (https://x.com/EHuanglu)
 
 ## PROMPT ✨ :
 
