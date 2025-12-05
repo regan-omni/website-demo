@@ -1,7 +1,9 @@
 # Hand Gesture Particle
-with Three.js
 
-Source: EHuanglu (https://x.com/EHuanglu)
+Built with Gemini Deepmind 
+(using Three.js)
+
+insipration: EHuanglu (https://x.com/EHuanglu)
 
 ## PROMPT ✨ :
 
