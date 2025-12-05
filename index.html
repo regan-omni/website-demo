@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesture Particles Pro</title>
+    <title>Gesture Particles: Space Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500&display=swap');
 
@@ -31,7 +31,7 @@
             z-index: 1;
         }
 
-        /* Mirrored video for natural interaction */
+        /* Mirrored video */
         #input-video {
             position: absolute;
             top: 0; left: 0;
@@ -42,10 +42,10 @@
             transform: scaleX(-1); 
         }
 
-        /* UI Dock - Lifted with Margin */
+        /* UI Dock */
         #ui-dock {
             position: absolute;
-            bottom: 50px; /* REQUEST 1: Margin at bottom */
+            bottom: 50px; 
             left: 50%;
             transform: translateX(-50%);
             width: auto;
@@ -176,7 +176,7 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <div style="font-size: 12px; letter-spacing: 2px; color: #888;">INITIALIZING SYSTEM</div>
+        <div style="font-size: 12px; letter-spacing: 2px; color: #888;">LOADING SPACE ASSETS</div>
     </div>
 
     <video id="input-video" autoplay playsinline></video>
@@ -188,10 +188,10 @@
             <div class="shape-selector">
                 <button class="btn active" data-shape="heart">Heart</button>
                 <button class="btn" data-shape="saturn">Saturn</button>
-                <button class="btn" data-shape="flower">Flower</button>
-                <button class="btn" data-shape="knot">Knot</button>
-                <button class="btn" data-shape="buddha">Buddha</button>
                 <button class="btn" data-shape="fireworks">Fireworks</button>
+                <button class="btn" data-shape="star">Star</button>
+                <button class="btn" data-shape="astronaut">Astronaut</button>
+                <button class="btn" data-shape="rocket">Rocket</button>
             </div>
         </div>
 
@@ -217,7 +217,7 @@
 
         // --- CONFIG ---
         const config = {
-            particleCount: 16000,
+            particleCount: 20000,
             baseSize: 0.35,
             color: new THREE.Color('#00ffcc'),
             shape: 'heart'
@@ -283,7 +283,7 @@
         const particles = new THREE.Points(geometry, material);
         scene.add(particles);
 
-        // --- SHAPE GENERATORS ---
+        // --- SHAPE LOGIC ---
         function updateShape(name) {
             config.shape = name;
             const pos = targetPositions;
@@ -297,7 +297,8 @@
                     const x=16*Math.pow(Math.sin(t),3), y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t), z=(Math.random()-0.5)*5;
                     set(x*0.8, y*0.8, z);
                 }
-            } else if (name === 'saturn') {
+            } 
+            else if (name === 'saturn') {
                 for(let i=0; i<cnt*0.4; i++){
                     const u=Math.random(), v=Math.random(), t=2*Math.PI*u, p=Math.acos(2*v-1), r=8;
                     set(r*Math.sin(p)*Math.cos(t), r*Math.sin(p)*Math.sin(t), r*Math.cos(p));
@@ -306,34 +307,110 @@
                     const t=Math.random()*Math.PI*2, r=11+Math.random()*8;
                     set(r*Math.cos(t), (Math.random()-0.5)*0.5, r*Math.sin(t));
                 }
-            } else if (name === 'flower') {
-                for(let i=0; i<cnt; i++){
-                    const ang=i*137.5*(Math.PI/180), r=0.6*Math.sqrt(i), x=r*Math.cos(ang), z=r*Math.sin(ang), y=Math.sqrt(x*x+z*z)*0.4-6;
-                    set(x,y,z);
-                }
-            } else if (name === 'knot') {
-                for(let i=0; i<cnt; i++){
-                    const t=Math.random()*Math.PI*6, r=10+3*Math.cos(3*t);
-                    set(r*Math.cos(2*t), r*Math.sin(2*t), 3*Math.sin(3*t));
-                }
-            } else if (name === 'buddha') {
-                const head=cnt*0.15, body=cnt*0.45;
-                for(let i=0; i<head; i++){
-                    const u=Math.random(),v=Math.random(),t=2*Math.PI*u,p=Math.acos(2*v-1),r=3.5;
-                    set(r*Math.sin(p)*Math.cos(t), r*Math.sin(p)*Math.sin(t)+7, r*Math.cos(p));
-                }
-                for(let i=head; i<head+body; i++){
-                    const h=(Math.random()*8)-4, r=4.5-(h+4)*0.25, a=Math.random()*Math.PI*2;
-                    set(r*Math.cos(a), h, r*Math.sin(a));
-                }
-                for(let i=head+body; i<cnt; i++){
-                    const t=Math.random()*Math.PI*2;
-                    set((6+2.5*Math.cos(t))*Math.cos(i/100)*0.5+(Math.random()-0.5)*12, -4.5+(Math.random()-0.5)*2, (Math.random()-0.5)*6);
-                }
-            } else if (name === 'fireworks') {
+            } 
+            else if (name === 'fireworks') {
                 for(let i=0; i<cnt; i++){
                     const u=Math.random(),v=Math.random(),t=2*Math.PI*u,p=Math.acos(2*v-1),r=15*Math.pow(Math.random(),0.3);
                     set(r*Math.sin(p)*Math.cos(t), r*Math.sin(p)*Math.sin(t), r*Math.cos(p));
+                }
+            }
+            // --- NEW SHAPES ---
+            else if (name === 'star') {
+                // 5-Pointed 3D Star
+                for(let i=0; i<cnt; i++){
+                    const u = Math.random();
+                    const v = Math.random();
+                    const theta = 2 * Math.PI * u;
+                    const phi = Math.acos(2 * v - 1);
+                    
+                    // Star formula radius modulation
+                    // Modulate radius based on angle to create points
+                    const spikes = 5;
+                    const vol = Math.sin(spikes * theta) * Math.sin(spikes * phi);
+                    const r = 8 + 6 * Math.pow(Math.abs(vol), 2); // Base radius + spikes
+
+                    set(
+                        r * Math.sin(phi) * Math.cos(theta),
+                        r * Math.sin(phi) * Math.sin(theta),
+                        r * Math.cos(phi) * 0.4 // Flatten Z slightly
+                    );
+                }
+            }
+            else if (name === 'astronaut') {
+                // Procedural Astronaut Composition
+                const headNum = cnt * 0.15;
+                const bodyNum = cnt * 0.35;
+                const packNum = cnt * 0.20;
+                const limbsNum = cnt * 0.30;
+
+                // 1. Helmet (Sphere)
+                for(let i=0; i<headNum; i++){
+                    const u=Math.random(), v=Math.random();
+                    const t=2*Math.PI*u, p=Math.acos(2*v-1), r=3;
+                    set(r*Math.sin(p)*Math.cos(t), r*Math.sin(p)*Math.sin(t) + 6, r*Math.cos(p));
+                }
+                // 2. Torso (Boxy)
+                for(let i=0; i<bodyNum; i++){
+                    set((Math.random()-0.5)*5, (Math.random()-0.5)*7 + 0.5, (Math.random()-0.5)*3);
+                }
+                // 3. Backpack (Box behind)
+                for(let i=0; i<packNum; i++){
+                    set((Math.random()-0.5)*4, (Math.random()-0.5)*6 + 1, -2 - Math.random()*2);
+                }
+                // 4. Limbs (Cylinders)
+                const limbChunk = limbsNum / 4;
+                for(let i=0; i<limbsNum; i++){
+                    const section = Math.floor(i / limbChunk); // 0=LArm, 1=RArm, 2=LLeg, 3=RLeg
+                    const h = (Math.random()-0.5)*6;
+                    const r = 1.2;
+                    const ang = Math.random()*Math.PI*2;
+                    
+                    if(section === 0) set(-3.5 + r*Math.cos(ang), 1+h, r*Math.sin(ang)); // L Arm
+                    else if(section === 1) set(3.5 + r*Math.cos(ang), 1+h, r*Math.sin(ang)); // R Arm
+                    else if(section === 2) set(-1.5 + r*Math.cos(ang), -6+h, r*Math.sin(ang)); // L Leg
+                    else set(1.5 + r*Math.cos(ang), -6+h, r*Math.sin(ang)); // R Leg
+                }
+            }
+            else if (name === 'rocket') {
+                // Rocket Logic
+                const bodyNum = cnt * 0.5;
+                const coneNum = cnt * 0.2;
+                const finNum = cnt * 0.15;
+                const fireNum = cnt * 0.15;
+
+                // 1. Cylinder Body
+                for(let i=0; i<bodyNum; i++){
+                    const h = (Math.random()-0.5)*12; // Height -6 to 6
+                    const ang = Math.random() * Math.PI * 2;
+                    const r = 2.5;
+                    set(r*Math.cos(ang), h, r*Math.sin(ang));
+                }
+                // 2. Nose Cone
+                for(let i=0; i<coneNum; i++){
+                    const h = Math.random() * 5; // 0 to 5
+                    const r = 2.5 * (1 - h/5); // Taper
+                    const ang = Math.random() * Math.PI * 2;
+                    set(r*Math.cos(ang), h + 6, r*Math.sin(ang));
+                }
+                // 3. Fins (3 fins)
+                for(let i=0; i<finNum; i++){
+                    const finId = Math.floor(Math.random()*3);
+                    const ang = (finId * (Math.PI*2/3));
+                    const w = Math.random() * 4 + 2.5; // stick out
+                    const h = Math.random() * 4; 
+                    // Rotate points to align with 3 angles
+                    const xBase = w; 
+                    const yBase = -6 + h;
+                    const xRot = xBase * Math.cos(ang);
+                    const zRot = xBase * Math.sin(ang);
+                    set(xRot, yBase, zRot);
+                }
+                // 4. Fire/Exhaust
+                for(let i=0; i<fireNum; i++){
+                    const r = Math.random() * 1.5;
+                    const ang = Math.random() * Math.PI * 2;
+                    const h = -6 - Math.random() * 8; // Trail down
+                    set(r*Math.cos(ang) + (Math.random()-0.5), h, r*Math.sin(ang) + (Math.random()-0.5));
                 }
             }
         }
@@ -355,7 +432,6 @@
                     },
                     runningMode: "VIDEO",
                     numHands: 2,
-                    // REQUEST 4: Sensitivity Refinements
                     minHandDetectionConfidence: 0.6, 
                     minHandPresenceConfidence: 0.6,
                     minTrackingConfidence: 0.5
@@ -390,7 +466,7 @@
                 state.handCount = res.landmarks.length;
 
                 if (state.handCount === 0) {
-                    // IDLE: Return to center, normal scale
+                    // IDLE
                     state.targetScale = 1.0;
                     state.targetRotX = 0;
                     state.targetRotY = 0;
@@ -398,27 +474,17 @@
                     statusText.innerText = "Waiting for hands...";
                 } 
                 else if (state.handCount === 1) {
-                    // REQUEST 3: ONE HAND LOGIC
+                    // ONE HAND
                     const lm = res.landmarks[0];
-                    
-                    // 1. Calculate Openness (Wrist to Middle Tip)
                     const openness = Math.hypot(lm[0].x - lm[12].x, lm[0].y - lm[12].y);
                     
-                    // Map openness: >0.3 is Open (Max Scale), <0.15 is Fist (Shrink)
-                    // Clamp value between 0 and 1 for easier mapping
                     let factor = (openness - 0.15) * 4; 
                     factor = Math.max(0, Math.min(1, factor));
                     
-                    // Scale: Fist(0.4) -> Open(1.8)
-                    state.targetScale = 0.4 + (factor * 1.4);
+                    state.targetScale = 0.4 + (factor * 1.4); // Fist=0.4, Open=1.8
 
-                    // 2. Rotation (Follow Hand)
-                    // Centroid of hand
                     const cx = lm[9].x; 
                     const cy = lm[9].y;
-                    
-                    // Map X (0..1) to Rotation Y (-1.5..1.5) (Left/Right)
-                    // Map Y (0..1) to Rotation X (-1.5..1.5) (Up/Down)
                     state.targetRotY = (cx - 0.5) * 3; 
                     state.targetRotX = (cy - 0.5) * 3;
                     state.targetRotZ = 0;
@@ -426,20 +492,16 @@
                     statusText.innerText = factor < 0.2 ? "Fist Detected: Shrink" : "Open Hand: Expand";
                 } 
                 else if (state.handCount === 2) {
-                    // REQUEST 3: TWO HANDS LOGIC
+                    // TWO HANDS
                     const h1 = res.landmarks[0][9];
                     const h2 = res.landmarks[1][9];
 
-                    // 1. Scale by Distance
                     const dist = Math.hypot(h1.x - h2.x, h1.y - h2.y);
-                    // Map dist (0.1..0.8) to Scale (0.5..3.0)
                     state.targetScale = Math.max(0.5, Math.min(3.5, (dist - 0.1) * 4));
 
-                    // 2. Rotation Z (Steering Wheel)
                     const angle = Math.atan2(h2.y - h1.y, h2.x - h1.x);
                     state.targetRotZ = -angle;
 
-                    // 3. Rotation X/Y (Follow Center of both hands)
                     const cx = (h1.x + h2.x) / 2;
                     const cy = (h1.y + h2.y) / 2;
                     state.targetRotY = (cx - 0.5) * 2;
@@ -462,7 +524,7 @@
 
         document.getElementById('color-picker').addEventListener('input', e => {
             config.color.set(e.target.value);
-            particles.material.color.set(config.color); // REQUEST 2: Only change here
+            particles.material.color.set(config.color);
         });
 
         window.addEventListener('resize', () => {
@@ -479,7 +541,6 @@
             const dt = clock.getDelta();
             const time = clock.getElapsedTime();
 
-            // Smooth Interpolation (Damping)
             const speed = 4.0 * dt;
             state.currentScale += (state.targetScale - state.currentScale) * speed;
             state.currentRotX += (state.targetRotX - state.currentRotX) * speed;
@@ -488,13 +549,10 @@
 
             particles.scale.setScalar(state.currentScale);
             
-            // Apply Rotations
-            // Base idle spin + Hand control
             particles.rotation.y = (time * 0.1) + state.currentRotY; 
             particles.rotation.x = state.currentRotX;
             particles.rotation.z = state.currentRotZ;
 
-            // Particle Morphing
             const pos = particles.geometry.attributes.position.array;
             const target = targetPositions;
             for(let i=0; i<config.particleCount*3; i++){
