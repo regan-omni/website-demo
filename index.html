@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesture Particles: Final</title>
+    <title>Gesture Particles: Swipe & Scramble</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500&display=swap');
 
@@ -231,7 +231,12 @@
             currentRotY: 0,
             targetRotZ: 0,
             currentRotZ: 0,
-            handCount: 0
+            handCount: 0,
+            // SWIPE LOGIC VARS
+            lastHandX: 0.5,
+            lastHandY: 0.5,
+            swipeVelX: 0,
+            swipeVelY: 0
         };
 
         // --- THREE.JS ---
@@ -314,26 +319,15 @@
                 }
             }
             else if (name === 'cloud') {
-                // Procedural Cloud
                 for(let i=0; i<cnt; i++){
                     const seed = Math.random();
                     let cx=0, cy=0, cz=0, rBase=0;
-                    
                     if(seed < 0.4) { cx=0; cy=0; cz=0; rBase=4.5; }
                     else if(seed < 0.7) { cx=-5; cy=-1; cz=0; rBase=3.5; }
                     else if(seed < 0.9) { cx=5; cy=-0.5; cz=0; rBase=3.8; }
                     else { cx=1; cy=3; cz=0; rBase=3.0; }
-
-                    const u=Math.random(), v=Math.random();
-                    const theta = 2 * Math.PI * u;
-                    const phi = Math.acos(2 * v - 1);
-                    const r = rBase + (Math.random() - 0.5);
-
-                    set(
-                        cx + r * Math.sin(phi) * Math.cos(theta),
-                        cy + r * Math.sin(phi) * Math.sin(theta) * 0.8,
-                        cz + r * Math.cos(phi)
-                    );
+                    const u=Math.random(), v=Math.random(), theta = 2 * Math.PI * u, phi = Math.acos(2 * v - 1), r = rBase + (Math.random() - 0.5);
+                    set(cx + r * Math.sin(phi) * Math.cos(theta), cy + r * Math.sin(phi) * Math.sin(theta) * 0.8, cz + r * Math.cos(phi));
                 }
             }
             else if (name === 'rocket') {
@@ -409,52 +403,76 @@
                 
                 state.handCount = res.landmarks.length;
 
+                // Determine "Hand Position" (Centroid)
+                let currentHandX = 0;
+                let currentHandY = 0;
+                
+                if (state.handCount > 0) {
+                    if (state.handCount === 1) {
+                        currentHandX = res.landmarks[0][9].x;
+                        currentHandY = res.landmarks[0][9].y;
+                    } else {
+                        // Average of two hands
+                        currentHandX = (res.landmarks[0][9].x + res.landmarks[1][9].x) / 2;
+                        currentHandY = (res.landmarks[0][9].y + res.landmarks[1][9].y) / 2;
+                    }
+
+                    // SWIPE DETECTION LOGIC
+                    // Calculate Delta
+                    const dx = currentHandX - state.lastHandX;
+                    const dy = currentHandY - state.lastHandY;
+                    const speed = Math.sqrt(dx*dx + dy*dy);
+
+                    // Threshold for "Swipe" (tuned for 60fps)
+                    // If moving fast enough, set velocity force
+                    if (speed > 0.04) {
+                        // Multiplier for scramble strength
+                        const force = 40.0;
+                        state.swipeVelX = dx * force;
+                        state.swipeVelY = -dy * force; // Invert Y because screen Y is down, 3D Y is up
+                    }
+
+                    // Update History
+                    state.lastHandX = currentHandX;
+                    state.lastHandY = currentHandY;
+                }
+
+                // --- EXISTING GESTURE LOGIC ---
+
                 if (state.handCount === 0) {
                     state.targetScale = 1.0;
-                    state.targetRotX = 0;
-                    state.targetRotY = 0;
-                    state.targetRotZ = 0;
+                    state.targetRotX = 0; state.targetRotY = 0; state.targetRotZ = 0;
                     statusText.innerText = "Waiting for hands...";
                 } 
                 else if (state.handCount === 1) {
-                    // ONE HAND
                     const lm = res.landmarks[0];
                     const openness = Math.hypot(lm[0].x - lm[12].x, lm[0].y - lm[12].y);
-                    
-                    let factor = (openness - 0.15) * 4; 
-                    factor = Math.max(0, Math.min(1, factor));
-                    
+                    let factor = (openness - 0.15) * 4; factor = Math.max(0, Math.min(1, factor));
                     state.targetScale = 0.4 + (factor * 1.4); 
 
-                    const cx = lm[9].x; 
-                    const cy = lm[9].y;
-                    
-                    // MIRRORED: Negate the X-difference for RotY
+                    const cx = lm[9].x; const cy = lm[9].y;
                     state.targetRotY = -(cx - 0.5) * 3; 
                     state.targetRotX = (cy - 0.5) * 3;
                     state.targetRotZ = 0;
 
-                    statusText.innerText = factor < 0.2 ? "Fist Detected: Shrink" : "Open Hand: Expand";
+                    // Update status based on swipe or clench
+                    if (Math.abs(state.swipeVelX) > 1 || Math.abs(state.swipeVelY) > 1) {
+                        statusText.innerText = "Swiping!";
+                    } else {
+                        statusText.innerText = factor < 0.2 ? "Fist: Shrink" : "Open: Expand";
+                    }
                 } 
                 else if (state.handCount === 2) {
-                    // TWO HANDS
-                    const h1 = res.landmarks[0][9];
-                    const h2 = res.landmarks[1][9];
-
+                    const h1 = res.landmarks[0][9]; const h2 = res.landmarks[1][9];
                     const dist = Math.hypot(h1.x - h2.x, h1.y - h2.y);
                     state.targetScale = Math.max(0.5, Math.min(3.5, (dist - 0.1) * 4));
-
                     const angle = Math.atan2(h2.y - h1.y, h2.x - h1.x);
                     state.targetRotZ = -angle;
-
-                    const cx = (h1.x + h2.x) / 2;
-                    const cy = (h1.y + h2.y) / 2;
+                    const cx = (h1.x + h2.x) / 2; const cy = (h1.y + h2.y) / 2;
+                    state.targetRotY = -(cx - 0.5) * 2; state.targetRotX = (cy - 0.5) * 2;
                     
-                    // MIRRORED: Negate the X-difference for RotY
-                    state.targetRotY = -(cx - 0.5) * 2;
-                    state.targetRotX = (cy - 0.5) * 2;
-
-                    statusText.innerText = "Dual Control: Scale & Steer";
+                    if (Math.abs(state.swipeVelX) > 1) statusText.innerText = "Swiping!";
+                    else statusText.innerText = "Dual Control";
                 }
             }
         }
@@ -488,6 +506,11 @@
             const dt = clock.getDelta();
             const time = clock.getElapsedTime();
 
+            // 1. Friction for Swipe Velocity (Decay)
+            state.swipeVelX *= 0.92;
+            state.swipeVelY *= 0.92;
+
+            // 2. Smooth UI Gestures
             const speed = 4.0 * dt;
             state.currentScale += (state.targetScale - state.currentScale) * speed;
             state.currentRotX += (state.targetRotX - state.currentRotX) * speed;
@@ -495,15 +518,35 @@
             state.currentRotZ += (state.targetRotZ - state.currentRotZ) * speed;
 
             particles.scale.setScalar(state.currentScale);
-            
             particles.rotation.y = (time * 0.1) + state.currentRotY; 
             particles.rotation.x = state.currentRotX;
             particles.rotation.z = state.currentRotZ;
 
+            // 3. Particle Physics (Morph + Scramble)
             const pos = particles.geometry.attributes.position.array;
             const target = targetPositions;
-            for(let i=0; i<config.particleCount*3; i++){
-                pos[i] += (target[i] - pos[i]) * 0.08;
+            
+            // Is swiping active?
+            const isSwiping = Math.abs(state.swipeVelX) > 0.1 || Math.abs(state.swipeVelY) > 0.1;
+
+            for(let i=0; i<config.particleCount*3; i+=3){
+                let ix = i, iy = i+1, iz = i+2;
+
+                // A. Apply Swipe Force (Scramble)
+                // Random multiplier creates "sandstorm" effect vs moving block
+                if (isSwiping) {
+                    pos[ix] += state.swipeVelX * (Math.random() + 0.2);
+                    pos[iy] += state.swipeVelY * (Math.random() + 0.2);
+                }
+
+                // B. Return to Target (Elasticity)
+                // If swiping hard, return force is weaker (let them fly)
+                // If stopped, return force is standard
+                const returnForce = isSwiping ? 0.02 : 0.08;
+                
+                pos[ix] += (target[ix] - pos[ix]) * returnForce;
+                pos[iy] += (target[iy] - pos[iy]) * returnForce;
+                pos[iz] += (target[iz] - pos[iz]) * returnForce;
             }
 
             particles.geometry.attributes.position.needsUpdate = true;
