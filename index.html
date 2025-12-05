@@ -29,9 +29,16 @@
             z-index: 1;
         }
 
-        /* Video is hidden, used for logic only */
+        /* FIX: Do not use display: none. Use opacity and z-index to hide it. */
         #input-video {
-            display: none; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 320px; /* Keep small but valid dimensions */
+            height: 240px;
+            opacity: 0; 
+            z-index: -1;
+            pointer-events: none;
         }
 
         /* UI Panel */
@@ -48,7 +55,6 @@
             border: 1px solid var(--glass-border);
             z-index: 10;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            transition: transform 0.3s ease;
         }
 
         h2 {
@@ -61,18 +67,9 @@
             padding-bottom: 8px;
         }
 
-        .control-group {
-            margin-bottom: 20px;
-        }
+        .control-group { margin-bottom: 20px; }
+        label { font-size: 12px; display: block; margin-bottom: 8px; color: #aaa; }
 
-        label {
-            font-size: 12px;
-            display: block;
-            margin-bottom: 8px;
-            color: #aaa;
-        }
-
-        /* Buttons */
         .shape-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -90,10 +87,7 @@
             transition: all 0.2s;
         }
 
-        button:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
+        button:hover { background: rgba(255, 255, 255, 0.15); }
         button.active {
             background: var(--primary);
             color: #000;
@@ -101,7 +95,6 @@
             box-shadow: 0 0 10px var(--primary);
         }
 
-        /* Color Picker */
         input[type="color"] {
             width: 100%;
             height: 40px;
@@ -111,7 +104,6 @@
             background: transparent;
         }
 
-        /* Status Indicator */
         #status {
             position: absolute;
             bottom: 20px;
@@ -149,14 +141,18 @@
             font-size: 24px;
             font-weight: 300;
             pointer-events: none;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
 
-    <div id="loading">Loading AI & 3D Engine...</div>
+    <div id="loading">Initializing System...</div>
 
-    <video id="input-video"></video>
+    <!-- FIX: Added autoplay and playsinline -->
+    <video id="input-video" autoplay playsinline></video>
 
     <div id="canvas-container"></div>
 
@@ -183,19 +179,18 @@
         <div class="control-group">
             <label>Interaction Info</label>
             <div style="font-size: 11px; color: #888; line-height: 1.4;">
-                Show <b>two hands</b> to the camera.<br>
-                Move hands apart to expand.<br>
-                Move hands closer to shrink.
+                1. Allow Camera Access<br>
+                2. Show <b>two hands</b><br>
+                3. Move apart/closer to scale
             </div>
         </div>
     </div>
 
     <div id="status">
         <span class="dot" id="hand-dot"></span>
-        <span id="status-text">Waiting for camera...</span>
+        <span id="status-text">System Init...</span>
     </div>
 
-    <!-- Import Libraries -->
     <script type="module">
         import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
         import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0';
@@ -203,7 +198,6 @@
         // --- 1. Three.js Setup ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        // Add subtle fog for depth
         scene.fog = new THREE.FogExp2(0x050505, 0.002);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -220,7 +214,6 @@
         const positions = new Float32Array(PARTICLE_COUNT * 3);
         const targetPositions = new Float32Array(PARTICLE_COUNT * 3);
         
-        // Initialize random positions
         for (let i = 0; i < PARTICLE_COUNT * 3; i++) {
             positions[i] = (Math.random() - 0.5) * 100;
             targetPositions[i] = positions[i];
@@ -228,11 +221,9 @@
 
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-        // Create a soft glow texture
         const getTexture = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = 32;
-            canvas.height = 32;
+            canvas.width = 32; canvas.height = 32;
             const context = canvas.getContext('2d');
             const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
             gradient.addColorStop(0, 'rgba(255,255,255,1)');
@@ -259,104 +250,63 @@
         const particles = new THREE.Points(geometry, material);
         scene.add(particles);
 
-        // --- 3. Shape Generators (Math Functions) ---
-        
+        // --- 3. Shape Logic ---
         function setTargetShape(shapeName) {
             const positions = targetPositions;
             let idx = 0;
-
             const setPos = (x, y, z) => {
                 if (idx < PARTICLE_COUNT * 3) {
-                    positions[idx++] = x;
-                    positions[idx++] = y;
-                    positions[idx++] = z;
+                    positions[idx++] = x; positions[idx++] = y; positions[idx++] = z;
                 }
             };
 
             if (shapeName === 'heart') {
                 for (let i = 0; i < PARTICLE_COUNT; i++) {
                     const t = Math.random() * Math.PI * 2;
-                    const p = Math.random(); // density
-                    // Heart parametric equations
                     const x = 16 * Math.pow(Math.sin(t), 3);
                     const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-                    const z = (Math.random() - 0.5) * 4; // Thickness
-                    
-                    // Scale down
-                    const s = 0.8;
-                    setPos(x * s, y * s, z);
+                    const z = (Math.random() - 0.5) * 4; 
+                    setPos(x * 0.8, y * 0.8, z);
                 }
-            } 
-            else if (shapeName === 'sphere') {
+            } else if (shapeName === 'sphere') {
                 for (let i = 0; i < PARTICLE_COUNT; i++) {
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos((Math.random() * 2) - 1);
                     const r = 12 + Math.random(); 
-                    
-                    const x = r * Math.sin(phi) * Math.cos(theta);
-                    const y = r * Math.sin(phi) * Math.sin(theta);
-                    const z = r * Math.cos(phi);
-                    setPos(x, y, z);
+                    setPos(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
                 }
-            }
-            else if (shapeName === 'saturn') {
-                // Planet
+            } else if (shapeName === 'saturn') {
                 const planetCount = PARTICLE_COUNT * 0.4;
                 for (let i = 0; i < planetCount; i++) {
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos((Math.random() * 2) - 1);
                     const r = 8;
-                    setPos(
-                        r * Math.sin(phi) * Math.cos(theta),
-                        r * Math.sin(phi) * Math.sin(theta),
-                        r * Math.cos(phi)
-                    );
+                    setPos(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
                 }
-                // Rings
                 for (let i = planetCount; i < PARTICLE_COUNT; i++) {
                     const angle = Math.random() * Math.PI * 2;
                     const r = 12 + Math.random() * 8;
-                    setPos(
-                        r * Math.cos(angle),
-                        (Math.random() - 0.5) * 0.5, // Flat y
-                        r * Math.sin(angle)
-                    );
+                    setPos(r * Math.cos(angle), (Math.random() - 0.5) * 0.5, r * Math.sin(angle));
                 }
-            }
-            else if (shapeName === 'flower') {
-                // Phyllotaxis
+            } else if (shapeName === 'flower') {
                 const spread = 0.5;
-                const scale = 8;
                 for (let i = 0; i < PARTICLE_COUNT; i++) {
                     const angle = i * 137.5 * (Math.PI / 180);
                     const r = spread * Math.sqrt(i);
-                    // Map to 3D bowl shape
                     const x = r * Math.cos(angle);
                     const z = r * Math.sin(angle);
                     const y = Math.sqrt(x*x + z*z) * 0.5 - 5; 
-                    
                     if (r < 20) setPos(x, y, z);
                     else setPos((Math.random()-0.5)*10, (Math.random()-0.5)*10, (Math.random()-0.5)*10);
                 }
-            }
-            else if (shapeName === 'fireworks') {
+            } else if (shapeName === 'fireworks') {
                  for (let i = 0; i < PARTICLE_COUNT; i++) {
-                    const u = Math.random();
-                    const v = Math.random();
-                    const theta = 2 * Math.PI * u;
-                    const phi = Math.acos(2 * v - 1);
-                    const r = 15 * Math.cbrt(Math.random()); // Even volume distribution
-                    
-                    setPos(
-                        r * Math.sin(phi) * Math.cos(theta),
-                        r * Math.sin(phi) * Math.sin(theta),
-                        r * Math.cos(phi)
-                    );
+                    const u = Math.random(); const v = Math.random();
+                    const theta = 2 * Math.PI * u; const phi = Math.acos(2 * v - 1);
+                    const r = 15 * Math.cbrt(Math.random()); 
+                    setPos(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
                 }
-            }
-            else if (shapeName === 'buddha') {
-                // Mathematical approximation of a seated figure (Meditate)
-                // Head (Sphere)
+            } else if (shapeName === 'buddha') {
                 const headCount = PARTICLE_COUNT * 0.15;
                 for(let i=0; i<headCount; i++){
                     const u = Math.random(), v = Math.random();
@@ -364,136 +314,135 @@
                     const r = 3.5;
                     setPos(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta) + 7, r * Math.cos(phi));
                 }
-                // Body (Cylinder/Cone-ish)
                 const bodyCount = PARTICLE_COUNT * 0.4;
                 for(let i=0; i<bodyCount; i++){
-                    const h = (Math.random() * 8) - 4; // Height -4 to 4
-                    const r = 4.5 - (h+4)*0.2; // Taper
+                    const h = (Math.random() * 8) - 4; 
+                    const r = 4.5 - (h+4)*0.2; 
                     const ang = Math.random() * Math.PI * 2;
                     setPos(r * Math.cos(ang), h, r * Math.sin(ang));
                 }
-                // Legs (Torus segment approximation)
                 const legCount = PARTICLE_COUNT - headCount - bodyCount;
                 for(let i=0; i<legCount; i++){
                     const t = Math.random() * Math.PI * 2;
-                    const tube = 2.5;
-                    const rad = 6;
-                    // Flattened torus
-                    setPos(
-                        (rad + tube * Math.cos(t)) * Math.cos(i/100) * 0.5 + (Math.random()-0.5)*12, 
-                        -5 + (Math.random()-0.5)*3, 
-                        (Math.random()-0.5)*5
-                    );
-                    // Just filling bottom area cleanly
-                    setPos((Math.random()-0.5)*14, -5 + Math.random()*2, (Math.random()-0.5)*8);
+                    const tube = 2.5; const rad = 6;
+                    setPos((rad + tube * Math.cos(t)) * Math.cos(i/100) * 0.5 + (Math.random()-0.5)*12, -5 + (Math.random()-0.5)*3, (Math.random()-0.5)*5);
                 }
             }
         }
-
-        // Initialize with heart
         setTargetShape('heart');
 
-        // --- 4. Hand Tracking Logic ---
-        
+        // --- 4. Hand Tracking Logic (FIXED) ---
         const video = document.getElementById('input-video');
         const statusText = document.getElementById('status-text');
         const handDot = document.getElementById('hand-dot');
+        const loadingEl = document.getElementById('loading');
+        
         let handLandmarker = undefined;
-        let lastVideoTime = -1;
         let detectionRunning = false;
-
-        // Target Interaction Variables
+        let lastVideoTime = -1;
         let targetScale = 1.0;
         let currentScale = 1.0;
         
         async function setupMediaPipe() {
-            const vision = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-            );
-            
-            handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-                    delegate: "GPU"
-                },
-                runningMode: "VIDEO",
-                numHands: 2
-            });
+            try {
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                );
+                
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 2
+                });
 
-            document.getElementById('loading').style.display = 'none';
-            statusText.innerText = "Requesting Camera...";
-            startWebcam();
+                loadingEl.innerText = "Starting Camera...";
+                startWebcam();
+            } catch (error) {
+                loadingEl.innerText = "Error loading AI Model.";
+                console.error(error);
+            }
         }
 
         function startWebcam() {
-            const constraints = { video: { width: 640, height: 480 } };
+            const constraints = { 
+                video: { 
+                    width: 640, 
+                    height: 480,
+                    facingMode: "user" 
+                } 
+            };
+
             navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
                 video.srcObject = stream;
+                // FIX: Explicitly play the video
+                video.play();
+                
                 video.addEventListener('loadeddata', () => {
+                    loadingEl.style.display = 'none';
                     detectionRunning = true;
-                    statusText.innerText = "Hands Active: 0";
+                    statusText.innerText = "Camera Active - Show Hands";
                     predictWebcam();
                 });
             }).catch(err => {
-                statusText.innerText = "Camera Denied/Error";
-                console.error(err);
+                loadingEl.innerText = "Camera Access Denied";
+                statusText.innerText = "Camera Error";
+                console.error("Camera Error:", err);
             });
         }
 
         async function predictWebcam() {
-            if (lastVideoTime !== video.currentTime) {
-                lastVideoTime = video.currentTime;
-                const results = handLandmarker.detectForVideo(video, performance.now());
+            if (handLandmarker && detectionRunning) {
+                let startTimeMs = performance.now();
                 
-                if (results.landmarks) {
-                    const count = results.landmarks.length;
-                    
-                    if (count > 0) {
-                        handDot.classList.add('active');
-                        statusText.innerText = `Hands Active: ${count}`;
-                    } else {
-                        handDot.classList.remove('active');
-                        statusText.innerText = `Hands Active: 0`;
-                        // Slowly reset scale if no hands
-                        targetScale = 1.0;
-                    }
+                // Only detect if video has advanced
+                if (video.currentTime !== lastVideoTime) {
+                    lastVideoTime = video.currentTime;
+                    const results = handLandmarker.detectForVideo(video, startTimeMs);
 
-                    // Logic: Two hands control scale
-                    if (count === 2) {
-                        const hand1 = results.landmarks[0][9]; // Middle finger knuckle
-                        const hand2 = results.landmarks[1][9];
+                    if (results.landmarks) {
+                        const count = results.landmarks.length;
                         
-                        // Calculate Euclidean distance (normalized coordinates 0-1)
-                        const dist = Math.sqrt(
-                            Math.pow(hand1.x - hand2.x, 2) + 
-                            Math.pow(hand1.y - hand2.y, 2)
-                        );
+                        if (count > 0) {
+                            handDot.classList.add('active');
+                            statusText.innerText = `Hands Detected: ${count}`;
+                            
+                            // Logic: Two hands control scale
+                            if (count === 2) {
+                                const hand1 = results.landmarks[0][9]; // Middle finger knuckle
+                                const hand2 = results.landmarks[1][9];
+                                
+                                const dist = Math.sqrt(
+                                    Math.pow(hand1.x - hand2.x, 2) + 
+                                    Math.pow(hand1.y - hand2.y, 2)
+                                );
 
-                        // Map distance to scale
-                        // approximate range of comfortable hand distance: 0.1 to 0.8
-                        // Map to scale 0.5 to 3.0
-                        let s = (dist - 0.1) * 4; 
-                        s = Math.max(0.5, Math.min(s, 3.5)); // Clamp
-                        targetScale = s;
+                                // Scale sensitivity
+                                let s = (dist - 0.1) * 4; 
+                                s = Math.max(0.5, Math.min(s, 3.5)); 
+                                targetScale = s;
+                            }
+                        } else {
+                            handDot.classList.remove('active');
+                            statusText.innerText = `Hands Active: 0`;
+                            targetScale = 1.0; // Reset
+                        }
                     }
                 }
             }
-            if (detectionRunning) window.requestAnimationFrame(predictWebcam);
+            window.requestAnimationFrame(predictWebcam);
         }
 
         setupMediaPipe();
 
-
-        // --- 5. UI Event Listeners ---
+        // --- 5. UI & Animation ---
         document.querySelectorAll('.shape-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // UI Update
                 document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
-                
-                // Logic Update
-                const shape = e.target.getAttribute('data-shape');
-                setTargetShape(shape);
+                setTargetShape(e.target.getAttribute('data-shape'));
             });
         });
 
@@ -501,49 +450,31 @@
             particles.material.color.set(e.target.value);
         });
 
-        // Window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-
-        // --- 6. Animation Loop ---
         const clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
-            
             const time = clock.getElapsedTime();
             const positionsArray = particles.geometry.attributes.position.array;
 
-            // 1. Interpolate scale based on hands
+            // Interpolate scale
             currentScale += (targetScale - currentScale) * 0.1;
             particles.scale.setScalar(currentScale);
 
-            // 2. Rotate the whole system slowly
+            // Rotation
             particles.rotation.y = time * 0.1;
-            // Add a little wobble based on scale (excitement)
-            if(currentScale > 1.5) {
-                particles.rotation.z = Math.sin(time) * 0.1;
-            } else {
-                particles.rotation.z *= 0.95;
-            }
+            if(currentScale > 1.5) particles.rotation.z = Math.sin(time) * 0.1;
+            else particles.rotation.z *= 0.95;
 
-            // 3. Morph particles to target shape
-            // We move 5% of the distance towards the target every frame for smooth morphing
+            // Morphing
             for (let i = 0; i < PARTICLE_COUNT * 3; i++) {
                 positionsArray[i] += (targetPositions[i] - positionsArray[i]) * 0.05;
-            }
-
-            // 4. Add some noise/breathing
-            if(document.querySelector('.shape-btn.active').getAttribute('data-shape') === 'fireworks') {
-                // Make fireworks jitter
-                // No extra breathing, just the expansion
-            } else {
-                // Subtle breathing for organic shapes
-               // Handled by rotation mostly
             }
 
             particles.geometry.attributes.position.needsUpdate = true;
@@ -551,7 +482,6 @@
         }
 
         animate();
-
     </script>
 </body>
 </html>
