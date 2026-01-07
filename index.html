@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesture Particles: Final Shapes</title>
+    <title>Gesture Particles: No Swipe</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500&display=swap');
 
@@ -231,12 +231,7 @@
             currentRotY: 0,
             targetRotZ: 0,
             currentRotZ: 0,
-            handCount: 0,
-            // SWIPE LOGIC VARS
-            lastHandX: 0.5,
-            lastHandY: 0.5,
-            swipeVelX: 0,
-            swipeVelY: 0
+            handCount: 0
         };
 
         // --- THREE.JS ---
@@ -318,48 +313,35 @@
                     set(r*Math.sin(p)*Math.cos(t), r*Math.sin(p)*Math.sin(t), r*Math.cos(p));
                 }
             }
-            // NEW SHAPE: Galaxy Spiral
+            // SHAPE: Galaxy Spiral
             else if (name === 'spiral') {
                 const arms = 4;
                 for(let i=0; i<cnt; i++){
-                    // Select an arm
                     const armIndex = i % arms;
                     const offset = (Math.PI * 2 / arms) * armIndex;
-                    
-                    // Distance from center
                     const r = Math.random() * 12;
-                    
-                    // Curve equation
                     const spin = r * 0.5;
                     const angle = offset + spin;
-                    
-                    // Add randomness to spread particles
-                    const spread = (Math.random() - 0.5) * (r * 0.3); // More spread at edges
-                    
+                    const spread = (Math.random() - 0.5) * (r * 0.3); 
                     const x = (r * Math.cos(angle)) + spread;
                     const z = (r * Math.sin(angle)) + spread;
-                    const y = (Math.random() - 0.5) * (Math.max(0.5, 6 - r * 0.5)); // Bulge in center
-                    
+                    const y = (Math.random() - 0.5) * (Math.max(0.5, 6 - r * 0.5)); 
                     set(x, y, z);
                 }
             }
-            // NEW SHAPE: DNA Double Helix
+            // SHAPE: DNA Double Helix
             else if (name === 'dna') {
                 for(let i=0; i<cnt; i++){
-                    const h = (Math.random() - 0.5) * 20; // Height -10 to 10
-                    const angle = h * 0.8; // Twist rate
+                    const h = (Math.random() - 0.5) * 20; 
+                    const angle = h * 0.8; 
                     const r = 4;
-                    const strand = Math.random() > 0.5 ? 0 : Math.PI; // Two strands
-                    
-                    // Add thickness to strands
+                    const strand = Math.random() > 0.5 ? 0 : Math.PI;
                     const spreadX = (Math.random() - 0.5) * 1.5;
                     const spreadY = (Math.random() - 0.5) * 1.5;
                     const spreadZ = (Math.random() - 0.5) * 1.5;
-
                     const x = r * Math.cos(angle + strand) + spreadX;
                     const z = r * Math.sin(angle + strand) + spreadZ;
                     const y = h + spreadY;
-
                     set(x, y, z);
                 }
             }
@@ -415,35 +397,6 @@
                 
                 state.handCount = res.landmarks.length;
 
-                // Determine "Hand Position" (Centroid)
-                let currentHandX = 0;
-                let currentHandY = 0;
-                
-                if (state.handCount > 0) {
-                    if (state.handCount === 1) {
-                        currentHandX = res.landmarks[0][9].x;
-                        currentHandY = res.landmarks[0][9].y;
-                    } else {
-                        // Average of two hands
-                        currentHandX = (res.landmarks[0][9].x + res.landmarks[1][9].x) / 2;
-                        currentHandY = (res.landmarks[0][9].y + res.landmarks[1][9].y) / 2;
-                    }
-
-                    // SWIPE DETECTION LOGIC
-                    const dx = currentHandX - state.lastHandX;
-                    const dy = currentHandY - state.lastHandY;
-                    const speed = Math.sqrt(dx*dx + dy*dy);
-
-                    if (speed > 0.04) {
-                        const force = 40.0;
-                        state.swipeVelX = dx * force;
-                        state.swipeVelY = -dy * force; 
-                    }
-
-                    state.lastHandX = currentHandX;
-                    state.lastHandY = currentHandY;
-                }
-
                 if (state.handCount === 0) {
                     state.targetScale = 1.0;
                     state.targetRotX = 0; state.targetRotY = 0; state.targetRotZ = 0;
@@ -460,11 +413,7 @@
                     state.targetRotX = (cy - 0.5) * 3;
                     state.targetRotZ = 0;
 
-                    if (Math.abs(state.swipeVelX) > 1 || Math.abs(state.swipeVelY) > 1) {
-                        statusText.innerText = "Swiping!";
-                    } else {
-                        statusText.innerText = factor < 0.2 ? "Fist: Shrink" : "Open: Expand";
-                    }
+                    statusText.innerText = factor < 0.2 ? "Fist: Shrink" : "Open: Expand";
                 } 
                 else if (state.handCount === 2) {
                     const h1 = res.landmarks[0][9]; const h2 = res.landmarks[1][9];
@@ -475,8 +424,7 @@
                     const cx = (h1.x + h2.x) / 2; const cy = (h1.y + h2.y) / 2;
                     state.targetRotY = -(cx - 0.5) * 2; state.targetRotX = (cy - 0.5) * 2;
                     
-                    if (Math.abs(state.swipeVelX) > 1) statusText.innerText = "Swiping!";
-                    else statusText.innerText = "Dual Control";
+                    statusText.innerText = "Dual Control";
                 }
             }
         }
@@ -510,9 +458,6 @@
             const dt = clock.getDelta();
             const time = clock.getElapsedTime();
 
-            state.swipeVelX *= 0.92;
-            state.swipeVelY *= 0.92;
-
             const speed = 4.0 * dt;
             state.currentScale += (state.targetScale - state.currentScale) * speed;
             state.currentRotX += (state.targetRotX - state.currentRotX) * speed;
@@ -527,21 +472,8 @@
             const pos = particles.geometry.attributes.position.array;
             const target = targetPositions;
             
-            const isSwiping = Math.abs(state.swipeVelX) > 0.1 || Math.abs(state.swipeVelY) > 0.1;
-
-            for(let i=0; i<config.particleCount*3; i+=3){
-                let ix = i, iy = i+1, iz = i+2;
-
-                if (isSwiping) {
-                    pos[ix] += state.swipeVelX * (Math.random() + 0.2);
-                    pos[iy] += state.swipeVelY * (Math.random() + 0.2);
-                }
-
-                const returnForce = isSwiping ? 0.02 : 0.08;
-                
-                pos[ix] += (target[ix] - pos[ix]) * returnForce;
-                pos[iy] += (target[iy] - pos[iy]) * returnForce;
-                pos[iz] += (target[iz] - pos[iz]) * returnForce;
+            for(let i=0; i<config.particleCount*3; i++){
+                pos[i] += (target[i] - pos[i]) * 0.08;
             }
 
             particles.geometry.attributes.position.needsUpdate = true;
