@@ -3,25 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesture Particles: No Swipe</title>
+    <title>Gesture Particles: Dimension</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500&display=swap');
 
         :root {
-            --glass-bg: rgba(15, 15, 20, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --primary: #00ffcc;
-            --text-main: rgba(255, 255, 255, 0.95);
-            --text-muted: rgba(255, 255, 255, 0.6);
+            --glass-bg: rgba(10, 5, 20, 0.6); /* Darker glass for mystery vibe */
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #9d4edd; /* Lighter purple for UI highlights */
+            --text-main: rgba(255, 255, 255, 0.9);
+            --text-muted: rgba(255, 255, 255, 0.5);
         }
 
         body {
             margin: 0;
             overflow: hidden;
-            background: #000;
+            background-color: #000;
             font-family: 'Inter', sans-serif;
             color: var(--text-main);
             user-select: none;
+        }
+
+        /* --- MYSTERIOUS BACKGROUND ANIMATION --- */
+        .background-fx {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0;
+            background: linear-gradient(125deg, #000000 0%, #1a0b2e 30%, #0f0518 70%, #000000 100%);
+            background-size: 300% 300%;
+            animation: dimensionShift 20s ease infinite;
+        }
+
+        @keyframes dimensionShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         #canvas-container {
@@ -31,7 +48,7 @@
             z-index: 1;
         }
 
-        /* Mirrored video display */
+        /* Mirrored video display (Hidden logic) */
         #input-video {
             position: absolute;
             top: 0; left: 0;
@@ -45,7 +62,7 @@
         /* UI Dock */
         #ui-dock {
             position: absolute;
-            bottom: 50px; 
+            bottom: 40px; 
             left: 50%;
             transform: translateX(-50%);
             width: auto;
@@ -61,7 +78,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 25px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
             transition: transform 0.2s;
         }
 
@@ -85,7 +102,7 @@
         }
 
         .btn {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--glass-border);
             color: var(--text-main);
             padding: 8px 14px;
@@ -95,13 +112,13 @@
             transition: all 0.2s;
         }
 
-        .btn:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-1px); }
+        .btn:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-1px); }
         .btn.active {
             background: var(--primary);
-            color: #000;
+            color: #fff;
             font-weight: 600;
             border-color: var(--primary);
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+            box-shadow: 0 0 15px rgba(157, 78, 221, 0.4);
         }
 
         .color-wrapper {
@@ -128,10 +145,10 @@
             gap: 8px;
             font-size: 11px;
             color: var(--primary);
-            background: rgba(0, 255, 204, 0.08);
+            background: rgba(157, 78, 221, 0.1);
             padding: 8px 14px;
             border-radius: 20px;
-            border: 1px solid rgba(0, 255, 204, 0.15);
+            border: 1px solid rgba(157, 78, 221, 0.2);
             white-space: nowrap;
         }
         .status-dot {
@@ -143,13 +160,13 @@
 
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #050505;
+            background: #000;
             z-index: 100;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.5s;
+            transition: opacity 1.5s; /* Slow fade for effect */
         }
         .spinner {
             width: 40px; height: 40px;
@@ -174,9 +191,11 @@
 </head>
 <body>
 
+    <div class="background-fx"></div>
+
     <div id="loader">
         <div class="spinner"></div>
-        <div style="font-size: 12px; letter-spacing: 2px; color: #888;">LOADING SYSTEM</div>
+        <div style="font-size: 12px; letter-spacing: 2px; color: #666;">ENTERING DIMENSION...</div>
     </div>
 
     <video id="input-video" autoplay playsinline></video>
@@ -197,7 +216,8 @@
         <div class="dock-section">
             <div class="dock-label">Color</div>
             <div class="color-wrapper">
-                <input type="color" id="color-picker" value="#00ffcc">
+                <!-- REQUEST: Start with #662C90 -->
+                <input type="color" id="color-picker" value="#662C90">
             </div>
         </div>
 
@@ -218,7 +238,8 @@
         const config = {
             particleCount: 20000,
             baseSize: 0.35,
-            color: new THREE.Color('#00ffcc'),
+            // REQUEST: Start with specific Hex
+            color: new THREE.Color('#662C90'),
             shape: 'heart'
         };
 
@@ -237,7 +258,9 @@
         // --- THREE.JS ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000000, 0.002);
+        // Remove standard black fog, let CSS background shine through, 
+        // but keep slight fog for depth
+        scene.fog = new THREE.FogExp2(0x050210, 0.002);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.z = 30;
@@ -313,7 +336,6 @@
                     set(r*Math.sin(p)*Math.cos(t), r*Math.sin(p)*Math.sin(t), r*Math.cos(p));
                 }
             }
-            // SHAPE: Galaxy Spiral
             else if (name === 'spiral') {
                 const arms = 4;
                 for(let i=0; i<cnt; i++){
@@ -329,7 +351,6 @@
                     set(x, y, z);
                 }
             }
-            // SHAPE: DNA Double Helix
             else if (name === 'dna') {
                 for(let i=0; i<cnt; i++){
                     const h = (Math.random() - 0.5) * 20; 
@@ -380,7 +401,7 @@
                 video.srcObject = stream;
                 video.addEventListener('loadeddata', () => {
                     video.play();
-                    loader.style.opacity='0'; setTimeout(()=>loader.remove(),500);
+                    loader.style.opacity='0'; setTimeout(()=>loader.remove(),1500);
                     statusText.innerText = "Active - Show Hands";
                     detect();
                 });
@@ -403,26 +424,35 @@
                     statusText.innerText = "Waiting for hands...";
                 } 
                 else if (state.handCount === 1) {
+                    // ONE HAND
                     const lm = res.landmarks[0];
                     const openness = Math.hypot(lm[0].x - lm[12].x, lm[0].y - lm[12].y);
                     let factor = (openness - 0.15) * 4; factor = Math.max(0, Math.min(1, factor));
                     state.targetScale = 0.4 + (factor * 1.4); 
 
                     const cx = lm[9].x; const cy = lm[9].y;
-                    state.targetRotY = -(cx - 0.5) * 3; 
-                    state.targetRotX = (cy - 0.5) * 3;
+                    
+                    // REQUEST: Less sensitive, smoother transition
+                    // Reduced multiplier from 3.0 to 1.5 to prevent flipping upside down
+                    state.targetRotY = -(cx - 0.5) * 1.5; 
+                    state.targetRotX = (cy - 0.5) * 1.0; 
                     state.targetRotZ = 0;
 
                     statusText.innerText = factor < 0.2 ? "Fist: Shrink" : "Open: Expand";
                 } 
                 else if (state.handCount === 2) {
+                    // TWO HANDS
                     const h1 = res.landmarks[0][9]; const h2 = res.landmarks[1][9];
                     const dist = Math.hypot(h1.x - h2.x, h1.y - h2.y);
                     state.targetScale = Math.max(0.5, Math.min(3.5, (dist - 0.1) * 4));
                     const angle = Math.atan2(h2.y - h1.y, h2.x - h1.x);
                     state.targetRotZ = -angle;
+
                     const cx = (h1.x + h2.x) / 2; const cy = (h1.y + h2.y) / 2;
-                    state.targetRotY = -(cx - 0.5) * 2; state.targetRotX = (cy - 0.5) * 2;
+                    
+                    // REQUEST: Less sensitive
+                    state.targetRotY = -(cx - 0.5) * 1.5; 
+                    state.targetRotX = (cy - 0.5) * 1.0;
                     
                     statusText.innerText = "Dual Control";
                 }
@@ -458,14 +488,19 @@
             const dt = clock.getDelta();
             const time = clock.getElapsedTime();
 
-            const speed = 4.0 * dt;
+            // REQUEST: Smoother transition (Heavy damping)
+            // Reduced interpolation speed from 4.0 to 2.0
+            const speed = 2.0 * dt;
+            
             state.currentScale += (state.targetScale - state.currentScale) * speed;
             state.currentRotX += (state.targetRotX - state.currentRotX) * speed;
             state.currentRotY += (state.targetRotY - state.currentRotY) * speed;
             state.currentRotZ += (state.targetRotZ - state.currentRotZ) * speed;
 
             particles.scale.setScalar(state.currentScale);
-            particles.rotation.y = (time * 0.1) + state.currentRotY; 
+            
+            // Base rotation + Gesture rotation
+            particles.rotation.y = (time * 0.08) + state.currentRotY; 
             particles.rotation.x = state.currentRotX;
             particles.rotation.z = state.currentRotZ;
 
