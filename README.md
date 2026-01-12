@@ -1,7 +1,7 @@
 # Hand Gesture Particle
 
 Built with Gemini Deepmind 
-(using Three.js)
+(powered by Three.js)
 
 inspiration: [EHuanglu](https://x.com/EHuanglu/status/1995511733138710785)
 
@@ -13,7 +13,7 @@ requirements:
 
 1. Control the scaling and expansion of the particle group by detecting the tension and closing of both hands through the camera.
 
-2. Provide panels that can choose hearts/flowers/saturn/Buddha statues/fireworks and other templates
+2. Provide panels that can choose hearts/particles/saturn/dna/fireworks, and other templates
 
 3. Support the colour selector to adjust the particle colour
 
